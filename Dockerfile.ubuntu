@@ -1,0 +1,29 @@
+# Start from the latest official Ubuntu image
+FROM ubuntu:latest
+
+# Set non-interactive frontend to avoid prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update package lists, install tmux, nano, and openssh-server
+# and then clean up the apt cache to reduce image size
+RUN apt-get update && \
+    apt-get install -y tmux nano openssh-server && \
+    # Create the directory for the SSH daemon
+    mkdir -p /var/run/sshd && \
+    # --- DANGEROUS ---
+    # Set a simple root password ('root')
+    # This is VERY INSECURE and should ONLY be used for local testing.
+    echo 'root:root' | chpasswd && \
+    # Allow root login via SSH
+    # This is also VERY INSECURE.
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    # --- END DANGEROUS ---
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Expose the default SSH port
+EXPOSE 22
+
+# Set the default command to run the SSH daemon in the foreground
+CMD ["/usr/sbin/sshd", "-D"]
