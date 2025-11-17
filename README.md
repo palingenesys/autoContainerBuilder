@@ -8,6 +8,8 @@ This script creates Docker containers from different images and connects each co
 
 The `users.txt` file contains a list of users, one per line. Each row represents a user and their associated container. The first column is the username, and the second column is the Docker image name.
 
+Run the script with `.\create-containers.sh add users.txt` to add the missing containers, use the `recreate` option to delete and recreate each container if existing.
+
 ### Docker Images
 
 To build a Docker image from a Dockerfile, use the following command:
