@@ -10,6 +10,8 @@ VNC_START_PORT=10000
 NOVNC_START_PORT=11000
 SSH_START_PORT=12000
 
+DISPLAY_START_NUM=70
+
 set -e
 
 # 1. Check arguments
@@ -54,6 +56,7 @@ while read -r username image_name; do
     VNC_PORT=$((VNC_START_PORT + i))
     NOVNC_PORT=$((NOVNC_START_PORT + i))
     SSH_PORT=$((SSH_START_PORT + i))
+    DISPLAY_NUM=$((DISPLAY_START_NUM + i))
 
     mkdir -p "$HOST_VOLUME_PATH"
     mkdir -p "$USER_DEPLOY_DIR"
@@ -73,7 +76,7 @@ services:
       - USER=ubuntu
       - PASSWORD=ubuntu
       - NOVNC_WEB=/usr/lib/novnc
-      - DISPLAY_NUM=70
+      - DISPLAY_NUM=${DISPLAY_NUM}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics,display
       - DISPLAY=\${DISPLAY}
