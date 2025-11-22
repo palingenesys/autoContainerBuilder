@@ -3,13 +3,17 @@
 # --- Configuration ---
 #
 # Docker run options
-DOCKER_OPTS="-d --label tsdproxy.enable=true"
-
+DOCKER_OPTS="-d --label tsdproxy.enable=true --label tsbridge.enabled=true --gpus all --platform linux/amd64 --network host -e USER=ubuntu -e PASSWORD=ubuntu -e NOVNC_WEB=/usr/lib/novnc -e DISPLAY_NUM=70 -e NVIDIA_VISIBLE_DEVICES=all -e NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics,display -e LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:$LD_LIBRARY_PATH -e DISPLAY=$DISPLAY -e VK_ICD_FILENAMES=/etc/vulkan/icd.d/nvidia_icd.json -v /etc/vulkan/icd.d:/etc/vulkan/icd.d:ro -v /usr/share/vulkan/icd.d:/usr/share/vulkan/icd.d:ro -v /tmp/.X11-unix:/tmp/.X11-unix:rw"
 # Set the path inside the container where the user's workspace will be mounted.
 CONTAINER_WORKSPACE_PATH="/workspace"
+# Output ports for VNC, NoVNC, and SSH
+VNC_OUTPUT_PORT=5901
+NOVNC_OUTPUT_PORT=6080
+SSH_OUTPUT_PORT=22
 
-VNC_START_PORT=5000
-NOVNC_START_PORT=6000
+VNC_START_PORT=10000
+NOVNC_START_PORT=11000
+SSH_START_PORT=12000
 
 # Exit immediately if a command fails
 set -e
@@ -69,10 +73,20 @@ while read -r username image_name; do
     USER_VOLUME_OPT="-v $HOST_VOLUME_PATH:$CONTAINER_WORKSPACE_PATH"
 
     # 6. Define Port options
-    VNC_PORT=$((VNC_START_PORT + i))
-    NOVNC_PORT=$((NOVNC_START_PORT + i))
-    PORT_OPT="--label tsdproxy.name=$username --label tsdproxy.port.1=5901/tcp:5901/tcp,noautodetect,no_tlsvalidate -p $VNC_PORT:5901 --label tsdproxy.port.2=6080/tcp:6080/tcp,noautodetect,no_tlsvalidate -p $NOVNC_PORT:6080"
+    # VNC
+    VNC_CNT_PORT=$((VNC_START_PORT + i))
+    VNC_OPT="-e VNC_PORT=$VNC_CNT_PORT --label tsdproxy.port.1=5901/tcp:$VNC_CNT_PORT/tcp,noautodetect,no_tlsvalidate"
+    #VNC_OPT="-e VNC_PORT=$VNC_CNT_PORT --label tsbridge.service.port=$VNC_CNT_PORT --label tsbridge.service.listen_addr=:$VNC_OUTPUT_PORT"
 
+    # NoVNC
+    NOVNC_CNT_PORT=$((NOVNC_START_PORT + i))
+    NOVNC_OPT="-e NOVNC_PORT=$NOVNC_CNT_PORT --label tsdproxy.port.2=6080/http:$NOVNC_CNT_PORT/http,noautodetect,no_tlsvalidate"
+    #NOVNC_OPT="-e NOVNC_PORT=$NOVNC_CNT_PORT --label tsbridge.web.port=$NOVNC_CNT_PORT --label tsbridge.web.listen_addr=:$NOVNC_OUTPUT_PORT"
+
+    SSH_CNT_PORT=$((SSH_START_PORT + i))
+    SSH_OPT="-e SSH_PORT=$SSH_CNT_PORT --label tsdproxy.port.3=22/tcp:$SSH_CNT_PORT/tcp,noautodetect,no_tlsvalidate"
+    #SSH_OPT="-e SSH_PORT=$SSH_CNT_PORT --label tsbridge.ssh.port=$SSH_CNT_PORT --label tsbridge.ssh.listen_addr=:$SSH_OUTPUT_PORT"
+    
     # 7. Check container existence and handle based on mode
     CREATE_CONTAINER=false # Flag to decide if we run the container
 
@@ -101,11 +115,17 @@ while read -r username image_name; do
     # 8. Run the new container *if* flagged for creation
     if [ "$CREATE_CONTAINER" = true ]; then
         echo "Starting container '$CONTAINER_NAME' using image '$image_name'..."
+        echo "Full command: docker run $DOCKER_OPTS $USER_VOLUME_OPT $VNC_OPT $NOVNC_OPT $SSH_OPT --label tsdproxy.name=dev-$username --name $CONTAINER_NAME $image_name"
         docker run $DOCKER_OPTS \
-                 $USER_VOLUME_OPT \
-                 $PORT_OPT \
-                 --name "$CONTAINER_NAME" \
-                 "$image_name"
+                $USER_VOLUME_OPT \
+                $VNC_OPT \
+                $NOVNC_OPT \
+                $SSH_OPT \
+                --label tsdproxy.name=dev-$username \
+                --name "$CONTAINER_NAME" \
+                "$image_name"
+
+        echo "Full command: docker run $DOCKER_OPTS $USER_VOLUME_OPT $VNC_OPT $NOVNC_OPT $SSH_OPT --label tsdproxy.name=dev-$username --name $CONTAINER_NAME $image_name"
 
         echo "Successfully launched $CONTAINER_NAME"
     fi
