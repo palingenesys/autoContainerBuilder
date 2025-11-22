@@ -72,14 +72,15 @@ services:
     container_name: ${PROJECT_NAME}
     image: ${image_name}
     network_mode: host
+    hostname: ${PROJECT_NAME}
     environment:
       - USER=ubuntu
       - PASSWORD=ubuntu
       - NOVNC_WEB=/usr/lib/novnc
       - DISPLAY_NUM=${DISPLAY_NUM}
+      - DISPLAY=:${DISPLAY_NUM}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics,display
-      - DISPLAY=\${DISPLAY}
       - VK_ICD_FILENAMES=/etc/vulkan/icd.d/nvidia_icd.json
       - VNC_PORT=${VNC_PORT}
       - NOVNC_PORT=${NOVNC_PORT}
