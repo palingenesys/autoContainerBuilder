@@ -125,7 +125,7 @@ services:
   # -----------------------------------------------------------------
   # 3. Port forwarding
   # Sits inside the Tailscale network namespace.
-  # Listens on standard ports (22, 6080) and tunnels to the Host ports.
+  # Listens on standard ports (22, 6080, 5901) and tunnels to the Host ports.
   # -----------------------------------------------------------------
   forwarder:
     image: alpine/socat
@@ -136,16 +136,15 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-    # Relay Logic:
-    # Listen on Port 22 (Tailnet) -> Send to Host:${SSH_PORT}
-    # Listen on Port 6080 (Tailnet) -> Send to Host:${NOVNC_PORT}
     entrypoint: ["/bin/sh", "-c"]
     command: 
       - |
-        echo "Forwarding SSH:22 to Host:${SSH_PORT}..."
-        echo "Forwarding NoVNC:6080 to Host:${NOVNC_PORT}..."
+        echo "Forwarding SSH: 22 to Host:${SSH_PORT}..."
+        echo "Forwarding NoVNC: 6080 to Host:${NOVNC_PORT}..."
+        echo "Forwarding VNC: 5901 to Host:${VNC_PORT}..."
         socat TCP-LISTEN:22,fork,bind=0.0.0.0 TCP:host.docker.internal:${SSH_PORT} &
         socat TCP-LISTEN:6080,fork,bind=0.0.0.0 TCP:host.docker.internal:${NOVNC_PORT} &
+        socat TCP-LISTEN:5901,fork,bind=0.0.0.0 TCP:host.docker.internal:${VNC_PORT} &
         wait
 
 volumes:
