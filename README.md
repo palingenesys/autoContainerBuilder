@@ -39,3 +39,54 @@ docker compose up -d
 ```
 
 After making configuration changes, restart the container. Tailscale nodes are automatically added when containers are created.
+
+## Using `compose-containers.sh`
+
+The `compose-containers.sh` script is designed to automate the creation and management of Docker containers for development environments. It supports connecting containers to a Tailscale network and forwarding ports for remote access.
+
+### Prerequisites
+
+1. **Input File**: Prepare a text file (e.g., `users.txt`) listing users and their associated Docker images. Each line should follow the format:
+   ```
+   username docker-image-name
+   ```
+   Lines starting with `#` are treated as comments and ignored.
+
+2. **Tailscale Auth Key**: Obtain a valid Tailscale authentication key, it must be reusable.
+
+### Script Usage
+
+Run the script with the following syntax:
+```sh
+./compose-containers.sh <mode> <user_image_file.txt> <tailscale_auth_key>
+```
+
+- `<mode>`: Specify `add` to create new containers or `recreate` to delete and recreate existing containers.
+- `<user_image_file.txt>`: Path to the input file containing user and image mappings.
+- `<tailscale_auth_key>`: Your Tailscale authentication key.
+
+### Example
+
+To add containers for users listed in `users.txt`:
+```sh
+./compose-containers.sh add users.txt ts-auth-key
+```
+
+To recreate containers:
+```sh
+./compose-containers.sh recreate users.txt ts-auth-key
+```
+
+### What the Script Does
+
+1. **Reads Input File**: Processes each user and their Docker image.
+2. **Generates Docker Compose Configurations**: Creates a `docker-compose.yml` file for each user in the `deployments` directory.
+3. **Launches Containers**: Starts the containers using Docker Compose.
+4. **Port Forwarding**: Sets up port forwarding for SSH, VNC, and NoVNC access.
+
+### Output
+
+- Docker Compose configurations are stored in `deployments/<user_project_name>/docker-compose.yml`.
+- Containers are launched with the following access details:
+  - **SSH**: `ssh <container_name>`
+  - **noVNC Access**: `http://<container_name>:6080`
