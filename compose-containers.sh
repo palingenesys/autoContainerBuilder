@@ -79,6 +79,8 @@ services:
       - NOVNC_WEB=/usr/lib/novnc
       - DISPLAY_NUM=${DISPLAY_NUM}
       - DISPLAY=:${DISPLAY_NUM}
+      - ICEAUTHORITY=${CONTAINER_WORKSPACE_PATH}/.ICEauthority
+      - XAUTHORITY=${CONTAINER_WORKSPACE_PATH}/.Xauthority
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics,display
       - VK_ICD_FILENAMES=/etc/vulkan/icd.d/nvidia_icd.json
