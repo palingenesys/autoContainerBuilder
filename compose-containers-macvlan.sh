@@ -5,11 +5,6 @@ CONTAINER_WORKSPACE_PATH="/workspace"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 COMPOSE_BASE_DIR="$SCRIPT_DIR/deployments"
 
-# Base ports on the HOST (Destination for the proxy)
-VNC_START_PORT=10000
-NOVNC_START_PORT=11000
-SSH_START_PORT=12000
-
 DISPLAY_START_NUM=70
 
 set -e
@@ -51,11 +46,7 @@ while read -r username image_name; do
     USER_DEPLOY_DIR="$COMPOSE_BASE_DIR/$PROJECT_NAME"
     HOST_VOLUME_PATH="$USER_DEPLOY_DIR/ws_$username"
     
-    # Calculate Host Ports
-    # The App container listens on these.
-    VNC_PORT=$((VNC_START_PORT + i))
-    NOVNC_PORT=$((NOVNC_START_PORT + i))
-    SSH_PORT=$((SSH_START_PORT + i))
+    # Calculate display num (unique per container)
     DISPLAY_NUM=$((DISPLAY_START_NUM + i))
 
     mkdir -p "$HOST_VOLUME_PATH"
@@ -71,7 +62,9 @@ services:
   app:
     container_name: ${PROJECT_NAME}
     image: ${image_name}
-    network_mode: host
+    networks:
+      dev_net:
+        ipv4_address: 192.168.123.$((200 + i))
     hostname: ${PROJECT_NAME}
     environment:
       - USER=ubuntu
@@ -84,9 +77,9 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics,display
       - VK_ICD_FILENAMES=/etc/vulkan/icd.d/nvidia_icd.json
-      - VNC_PORT=${VNC_PORT}
-      - NOVNC_PORT=${NOVNC_PORT}
-      - SSH_PORT=${SSH_PORT}
+      - VNC_PORT=5901
+      - NOVNC_PORT=6080
+      - SSH_PORT=22
     volumes:
       - ${HOST_VOLUME_PATH}:${CONTAINER_WORKSPACE_PATH}
       - /etc/vulkan/icd.d:/etc/vulkan/icd.d:ro
@@ -123,35 +116,12 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
-    # This allows the container to reach the HOST where the 'app' is running
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    network_mode: service:app
     restart: unless-stopped
 
-  # -----------------------------------------------------------------
-  # 3. Port forwarding
-  # Sits inside the Tailscale network namespace.
-  # Listens on standard ports (22, 6080, 5901) and tunnels to the Host ports.
-  # -----------------------------------------------------------------
-  forwarder:
-    image: alpine/socat
-    network_mode: service:tailscale
-    depends_on:
-      - tailscale
-      - app
-    deploy:
-      restart_policy:
-        condition: on-failure
-    entrypoint: ["/bin/sh", "-c"]
-    command: 
-      - |
-        echo "Forwarding SSH: 22 to Host:${SSH_PORT}..."
-        echo "Forwarding NoVNC: 6080 to Host:${NOVNC_PORT}..."
-        echo "Forwarding VNC: 5901 to Host:${VNC_PORT}..."
-        socat TCP-LISTEN:22,fork,bind=0.0.0.0 TCP:host.docker.internal:${SSH_PORT} &
-        socat TCP-LISTEN:6080,fork,bind=0.0.0.0 TCP:host.docker.internal:${NOVNC_PORT} &
-        socat TCP-LISTEN:5901,fork,bind=0.0.0.0 TCP:host.docker.internal:${VNC_PORT} &
-        wait
+networks:
+  dev_net:
+    external: true
 
 volumes:
   ts-state:
