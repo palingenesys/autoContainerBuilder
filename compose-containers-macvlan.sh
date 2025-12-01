@@ -63,7 +63,8 @@ services:
     container_name: ${PROJECT_NAME}
     image: ${image_name}
     networks:
-      dev_net:
+      default: 
+      robot_lan:
         ipv4_address: 192.168.123.$((200 + i))
     hostname: ${PROJECT_NAME}
     environment:
@@ -87,6 +88,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /usr/local/nvidia/lib:/usr/local/nvidia/lib
       - /usr/local/nvidia/lib64:/usr/local/nvidia/lib64
+    shm_size: '1gb'
     deploy:
       resources:
         reservations:
@@ -120,7 +122,7 @@ services:
     restart: unless-stopped
 
 networks:
-  dev_net:
+  robot_lan:
     external: true
 
 volumes:
