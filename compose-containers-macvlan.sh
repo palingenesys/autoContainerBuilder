@@ -75,7 +75,7 @@ services:
       - DISPLAY=:${DISPLAY_NUM}
       - ICEAUTHORITY=${CONTAINER_WORKSPACE_PATH}/.ICEauthority
       - XAUTHORITY=${CONTAINER_WORKSPACE_PATH}/.Xauthority
-      - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:$LD_LIBRARY_PATH
+      - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
       - VK_ICD_FILENAMES=/etc/vulkan/icd.d/nvidia_icd.json
