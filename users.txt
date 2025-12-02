@@ -1,3 +1,4 @@
 beltra	dev:latest
 gabriel	dev:latest
-lorenzo	dev:latest
+giacomo dev:latest
+max     dev:latest

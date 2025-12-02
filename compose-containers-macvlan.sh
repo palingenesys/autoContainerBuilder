@@ -75,8 +75,9 @@ services:
       - DISPLAY=:${DISPLAY_NUM}
       - ICEAUTHORITY=${CONTAINER_WORKSPACE_PATH}/.ICEauthority
       - XAUTHORITY=${CONTAINER_WORKSPACE_PATH}/.Xauthority
+      - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:$LD_LIBRARY_PATH
       - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics,display
+      - NVIDIA_DRIVER_CAPABILITIES=all
       - VK_ICD_FILENAMES=/etc/vulkan/icd.d/nvidia_icd.json
       - VNC_PORT=5901
       - NOVNC_PORT=6080
@@ -85,6 +86,7 @@ services:
       - ${HOST_VOLUME_PATH}:${CONTAINER_WORKSPACE_PATH}
       - /etc/vulkan/icd.d:/etc/vulkan/icd.d:ro
       - /usr/share/vulkan/icd.d:/usr/share/vulkan/icd.d:ro
+      - /usr/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:ro
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /usr/local/nvidia/lib:/usr/local/nvidia/lib
       - /usr/local/nvidia/lib64:/usr/local/nvidia/lib64
@@ -105,7 +107,6 @@ services:
   tailscale:
     container_name: ${PROJECT_NAME}-ts
     image: tailscale/tailscale:latest
-    hostname: ${PROJECT_NAME}
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_HOSTNAME=${PROJECT_NAME}
