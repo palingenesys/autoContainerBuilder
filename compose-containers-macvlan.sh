@@ -14,9 +14,9 @@ MODE="$1"
 INPUT_FILE="$2"
 TS_AUTHKEY="$3"
 
-if [[ "$MODE" != "add" && "$MODE" != "recreate" && "$MODE" != "delete" ]]; then
+if [[ "$MODE" != "add" && "$MODE" != "recreate" && "$MODE" != "delete" && "$MODE" != "update-ts" ]]; then
   echo "Usage: $0 <mode> <user_image_file.txt> <tailscale_auth_key>" >&2
-  echo "Error: Invalid mode '$MODE'. Mode must be 'add', 'recreate' or 'delete'." >&2
+  echo "Error: Invalid mode '$MODE'. Mode must be 'add', 'recreate', 'delete' or 'update-ts'." >&2
   exit 1
 fi
 
@@ -25,7 +25,7 @@ if [[ -z "$INPUT_FILE" ]]; then
     exit 1
 fi
 
-if [[ "$MODE" != "delete" && -z "$TS_AUTHKEY" ]]; then
+if [[ "$MODE" != "delete" && "$MODE" != "update-ts" && -z "$TS_AUTHKEY" ]]; then
   echo "Error: You must provide a Tailscale Auth Key." >&2
   exit 1
 fi
@@ -49,11 +49,12 @@ while read -r username image_name; do
     # Calculate display num (unique per container)
     DISPLAY_NUM=$((DISPLAY_START_NUM + i))
 
-    mkdir -p "$HOST_VOLUME_PATH"
-    mkdir -p "$USER_DEPLOY_DIR"
+    # 3. Generate Docker Compose (skip for update-ts, we use the existing file)
+    if [[ "$MODE" != "update-ts" ]]; then
+      mkdir -p "$HOST_VOLUME_PATH"
+      mkdir -p "$USER_DEPLOY_DIR"
 
-    # 3. Generate Docker Compose
-    cat <<EOF > "$USER_DEPLOY_DIR/docker-compose.yml"
+      cat <<EOF > "$USER_DEPLOY_DIR/docker-compose.yml"
 services:
   # -----------------------------------------------------------------
   # 1. Dev environment
@@ -129,19 +130,31 @@ networks:
 volumes:
   ts-state:
 EOF
+    fi
 
     # 4. Execute Docker Compose or delete deployment
-    echo "Generated config at $USER_DEPLOY_DIR/docker-compose.yml"
-    cd "$USER_DEPLOY_DIR" || true
-
     if [ "$MODE" == "delete" ]; then
+      cd "$USER_DEPLOY_DIR" || true
       if [ -f docker-compose.yml ]; then
         echo "Stopping and removing compose stack for $PROJECT_NAME..."
         docker compose down -v --remove-orphans || true
       else
         echo "No compose file found for $PROJECT_NAME, skipping docker compose down."
       fi
+    elif [ "$MODE" == "update-ts" ]; then
+      if [ -f "$USER_DEPLOY_DIR/docker-compose.yml" ]; then
+        cd "$USER_DEPLOY_DIR" || true
+        echo "Pulling latest tailscale image for $PROJECT_NAME..."
+        docker compose pull tailscale
+        docker compose up -d --force-recreate --no-deps tailscale
+        cd "$SCRIPT_DIR"
+        echo "Updated tailscale for: $PROJECT_NAME"
+      else
+        echo "No existing deployment found for $PROJECT_NAME, skipping."
+      fi
     else
+      cd "$USER_DEPLOY_DIR" || true
+      echo "Generated config at $USER_DEPLOY_DIR/docker-compose.yml"
       if [ "$MODE" == "recreate" ]; then
         docker compose up -d --force-recreate
       else
