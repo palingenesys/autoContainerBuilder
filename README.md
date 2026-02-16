@@ -87,6 +87,9 @@ To recreate containers:
 ### Output
 
 - Docker Compose configurations are stored in `deployments/<user_project_name>/docker-compose.yml`.
+- A Tailscale Serve config is generated at `deployments/<user_project_name>/serve-config.json` to enable HTTPS for noVNC.
 - Containers are launched with the following access details:
   - **SSH**: `ssh <container_name>`
-  - **noVNC Access**: `http://<container_name>:6080`
+  - **noVNC Access**: `https://<container_name>` (HTTPS via Tailscale Serve)
+
+> **Note**: HTTPS certificates must be enabled in your Tailscale admin console under **DNS → HTTPS Certificates** at [https://login.tailscale.com/admin/dns](https://login.tailscale.com/admin/dns).
