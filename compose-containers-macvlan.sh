@@ -54,26 +54,6 @@ while read -r username image_name; do
       mkdir -p "$HOST_VOLUME_PATH"
       mkdir -p "$USER_DEPLOY_DIR"
 
-      # Generate Tailscale Serve config for HTTPS -> noVNC proxy
-      cat <<'SEOF' > "$USER_DEPLOY_DIR/serve-config.json"
-{
-  "TCP": {
-    "443": {
-      "HTTPS": true
-    }
-  },
-  "Web": {
-    "${TS_CERT_DOMAIN}:443": {
-      "Handlers": {
-        "/": {
-          "Proxy": "http://127.0.0.1:6080"
-        }
-      }
-    }
-  }
-}
-SEOF
-
       cat <<EOF > "$USER_DEPLOY_DIR/docker-compose.yml"
 services:
   # -----------------------------------------------------------------
@@ -134,11 +114,10 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
       - TS_EXTRA_ARGS=--advertise-tags=tag:dev-envs
-      - TS_SERVE_CONFIG=/config/serve-config.json
+      - TS_SIMPLE_SERVE_CONFIG=http://localhost:6080
     volumes:
       - ts-state:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
-      - ./serve-config.json:/config/serve-config.json:ro
     cap_add:
       - NET_ADMIN
       - NET_RAW
